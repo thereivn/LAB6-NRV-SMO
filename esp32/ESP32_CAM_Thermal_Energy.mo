@@ -1,7 +1,7 @@
 model ESP32_CAM_Thermal_Energy
   "Complete thermal and energy model of ESP32-CAM"
 
-  // Parameters - using simple Real types
+  // Parameters
   parameter Real T_initial = 25 "Initial temperature (°C)";
   parameter Real T_ambient = 25 "Ambient temperature (°C)";
   parameter Real C_chip = 5 "Chip heat capacity (J/K)";
@@ -22,43 +22,37 @@ model ESP32_CAM_Thermal_Energy
   parameter Real t_sleep = 60 "Sleep time (s)";
 
   // Variables
-  Real T_chip(start = T_initial + 273.15, fixed = true) "Chip temperature (K)";
+  Real T_chip(start = T_initial + 273.15) "Chip temperature (K)";
   Real T_case "Case temperature (K)";
   Real T_heatsink "Heatsink temperature (K)";
-  Integer mode(start = 1, fixed = true) "1=Video, 2=Processing, 3=Sleep";
+  Integer mode(start = 1) "1=Video, 2=Processing, 3=Sleep";
   Real SoC "State of Charge (%)";
   Real T_celsius "Chip temperature in °C";
   Real power_consumption "Instantaneous power consumption (W)";
   Real battery_charge "Battery charge remaining (Ah)";
   Real i_load "Load current (A)";
   Real p_dissipation "Power dissipation (W)";
+  Real t_next_switch(start = 0) "Time of next mode switch";
 
-protected
-  discrete Real t_next_switch(start = 0, fixed = true);
+  // Constants
   constant Integer VIDEO = 1;
   constant Integer PROCESSING = 2;
   constant Integer SLEEP = 3;
 
 equation 
-  // Mode switching logic
-  when time >= pre(t_next_switch) then
-    if pre(mode) == VIDEO then
-      mode = PROCESSING;
-      t_next_switch = time + t_processing;
-    elseif pre(mode) == PROCESSING then
-      mode = SLEEP;
-      t_next_switch = time + t_sleep;
-    else
-      mode = VIDEO;
-      t_next_switch = time + t_video;
-    end if;
-  end when;
+  // Mode switching logic - simplified without when
+  mode = if time < t_video then VIDEO else 
+         if time < t_video + t_processing then PROCESSING else 
+         if time < t_video + t_processing + t_sleep then SLEEP else 
+         VIDEO; // This simple model will repeat the cycle
 
   // Current based on mode
-  i_load = if mode == VIDEO then I_video else (if mode == PROCESSING then I_processing else I_sleep);
+  i_load = if mode == VIDEO then I_video else 
+           if mode == PROCESSING then I_processing else I_sleep;
   
   // Power dissipation based on mode
-  p_dissipation = if mode == VIDEO then P_active else (if mode == PROCESSING then P_active else P_sleep);
+  p_dissipation = if mode == VIDEO then P_active else 
+                  if mode == PROCESSING then P_active else P_sleep;
 
   // Thermal equations - RC network
   C_chip * der(T_chip) = p_dissipation - (T_chip - T_case) / R_chip_case;
@@ -75,10 +69,9 @@ equation
   // Power consumption
   power_consumption = i_load * V_battery;
 
-  // Initialize mode and first switch
-  when initial() then
-    mode = VIDEO;
-    t_next_switch = t_video;
-  end when;
+  // Time of next switch (for monitoring only)
+  t_next_switch = if mode == VIDEO then t_video - mod(time, t_video + t_processing + t_sleep) else
+                  if mode == PROCESSING then t_processing - mod(time - t_video, t_video + t_processing + t_sleep) else
+                  t_sleep - mod(time - t_video - t_processing, t_video + t_processing + t_sleep);
 
 end ESP32_CAM_Thermal_Energy;
