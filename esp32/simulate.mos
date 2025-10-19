@@ -9,6 +9,7 @@ getErrorString();
 checkModel(ESP32_CAM_Thermal_Energy);
 getErrorString();
 
-// Simulate for 4 hours to see thermal and battery behavior
-simulate(ESP32_CAM_Thermal_Energy, stopTime=14400, outputFormat="csv", numberOfIntervals=500);
+// Simulate and write directly to mounted volume
+simulate(ESP32_CAM_Thermal_Energy, stopTime=14400, outputFormat="csv", 
+         numberOfIntervals=500, fileNamePrefix="/output/ESP32_CAM_Results");
 getErrorString();
