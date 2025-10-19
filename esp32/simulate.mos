@@ -1,0 +1,14 @@
+// Clear any previous errors
+clear();
+
+// Load the model
+loadFile("ESP32_CAM_Thermal_Energy.mo");
+getErrorString();
+
+// Check the model syntax
+checkModel(ESP32_CAM_Thermal_Energy);
+getErrorString();
+
+// Simulate for 4 hours to see thermal and battery behavior
+simulate(ESP32_CAM_Thermal_Energy, stopTime=14400, outputFormat="csv", numberOfIntervals=500);
+getErrorString();

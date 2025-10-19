@@ -1,0 +1,14 @@
+// Clear any previous errors
+clear();
+
+// Load the model
+loadFile("CoffeeCooling.mo");
+getErrorString();
+
+// Check the model
+checkModel(CoolingCoffee);
+getErrorString();
+
+// Simulate
+simulate(CoolingCoffee, stopTime=3600, outputFormat="csv");
+getErrorString();
